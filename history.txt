@@ -1,0 +1,1 @@
+./subsample.sh $HOME/DockerVolume/seg4art/data/scenes/tiktok2 1
