@@ -1,0 +1,29 @@
+Within the seg4art repo:
+
+
+python3 -m venv myVenv (just the first time)
+source myVenv/bin/activate
+pip install opencv-python==3.4.13.47
+pip install matplotlib
+pip install shapely
+
+NO: fails the brew install gedal (no puc instalar geopandas)
+	pip install topojson
+	brew install bison@2.7
+	sudo chown -R $(whoami) /usr/local/var/log
+	brew install gdal
+	gdal-config --version
+	pip install gdal
+	pip install fiona
+	pip install geopandas
+
+
+
+How to simplify a multipolygon preserving topology (interesections)
+
+https://gis.stackexchange.com/questions/325766/geopandas-simplify-results-in-gaps-between-polygons
+
+Info:
+
+Dimensionally Extended 9-Intersection Model (DE-9IM): https://en.wikipedia.org/wiki/DE-9IM
+

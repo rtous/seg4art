@@ -1,6 +1,6 @@
-#EXAMPLE: ./subsample.sh $HOME/DockerVolume/seg4art/data/scenes/tiktok2 1
+#EXAMPLE: ./subsample.sh $HOME/DockerVolume/seg4art/data/scenes/tiktok 1
 
-#Assumes there's a $HOME/DockerVolume/seg4art/data/scenes/tiktok2
+#Assumes there's a $HOME/DockerVolume/seg4art/data/scenes/tiktok
 # with a footage.mp4 file within.
 
 
@@ -11,15 +11,15 @@ PNG=$2
 
 cd $INPUT_DIR
 
-mkdir images
+#mkdir images
 
-if [ "$PNG" == 1 ]; then
+#if [ "$PNG" == 1 ]; then
     ffmpeg -i $INPUT_DIR/footage.mp4 -r 5 $"images/$no_ext%03d.png"
-else
+#else
     ffmpeg -i $INPUT_DIR/footage.mp4 -r 5 $"images/$no_ext%03d.jpg"
-fi 
+#fi 
 
-mkdir imagesFull
+mkdir video
 
 if [ "$PNG" == 1 ]; then
     ffmpeg -i $INPUT_DIR/footage.mp4 -r 25 $"imagesFull/$no_ext%03d.png"
