@@ -4,7 +4,9 @@ import cv2
 import numpy as np
 import util_contours
 #import topojson as tp
-#import geopandas as gpd 
+#import geopandas as gpd
+
+colors = [(255,0,0), (0,255,0), (0,0,255), (255,255,255)]  
 
 def simplify(polygon, tolerance = 5.0):
     """ Simplify a polygon with shapely.
@@ -21,7 +23,9 @@ im = cv2.imread('/Users/rtous/DockerVolume/seg4art/data/scenes/tiktok2/out_pngs/
 assert im is not None, "file could not be read, check with os.path.exists()"
 cv2.imshow("title", im)
 cv2.waitKey()
+height, width = im.shape[:2]
 imgray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
+imcolor = np.zeros_like(im)
 
 '''
 SEEMS UNNECESSARY
@@ -43,17 +47,20 @@ imgray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
 
 #split image in C color regions (with a minimum of 1000 pixels)
 selected_contours = []
+contours_simplified = [] 
+colorNum = 0
 unique = np.unique(imgray)
 for i, color in enumerate(unique):
     mask = np.zeros_like(imgray)
     mask[imgray == color] = 255
+
     #cv2.imshow("title", mask)
     #cv2.waitKey()
     #ret, thresh = cv2.threshold(mask, 127, 255, 0)
     #image, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     #area = cv2.contourArea(contours[0])
     area = cv2.countNonZero(mask)
-    if area > 1000:
+    if area > 1000 and area < height*width/2: #avoid the frame contour
         #print("Found big area")
         #cv2.imshow("title", mask)
         #cv2.waitKey()
@@ -73,58 +80,76 @@ for i, color in enumerate(unique):
                 print("Mask: "+str(i)+"/ Contour "+str(j))
                 selected_contours.append(contour)
                 #contourImg = np.zeros_like(imgray)
-                #cv2.drawContours(mask, [contour], contourIdx=0, color=(100,200,100), thickness=3)
-                #cv2.imshow("title", mask)
-                #cv2.waitKey()
+                mask = np.zeros_like(imgray)
+                cv2.drawContours(mask, [contour], contourIdx=0, color=(100,200,100), thickness=3)
+                cv2.imshow("title", mask)
+                cv2.waitKey()
                 #poly = shapely.geometry.Polygon(np.squeeze(contour))
                 #polygons.append(poly)
-
-debug_contours = []
-#debug_contours.append(selected_contours[2][10:50])
-
-#debug_contours.append(selected_contours[9][75:100])
-#debug_contours.append(selected_contours[2][90:115])
-
-#debug_contours.append(selected_contours[9][250:300])
-#debug_contours.append(selected_contours[2][190:200])
-
-
-debug_contours.append(selected_contours[2])
-debug_contours.append(selected_contours[9])
-
-
-mask = np.zeros_like(imgray)
-cv2.drawContours(mask, [debug_contours[0]], contourIdx=0, color=(255,200,100), thickness=1)
-cv2.imshow("title", mask)
+                #simplifiedContour = simplify(np.squeeze(contours[0]))
+                try:
+                    simplifiedContour = simplify(np.squeeze(contour))
+                    #Convert shapely polygon (N, 2) to opencv contour (N-1, 1, 2)
+                    simplifiedContourReshaped = np.array(simplifiedContour).reshape((-1,1,2)).astype(np.int32)
+                    cv2.fillPoly(mask, pts =[simplifiedContourReshaped], color=(255,255,255))
+                    cv2.fillPoly(imcolor, pts =[simplifiedContourReshaped], color=colors[colorNum])
+                    contours_simplified.append(simplifiedContourReshaped)
+                    cv2.imshow("title", mask)
+                    cv2.waitKey()
+                    
+                except:
+                    print("Contour discarded as contains multi-part geometries")
+        colorNum = colorNum+1
+cv2.imshow("title", imcolor)
 cv2.waitKey()
+'''
+#Some contours have similar boundaries
+#Here I try to unify them 
+#Currently disabled
+
+#debug_contours = []
+#debug_contours.append(selected_contours[2])
+#debug_contours.append(selected_contours[9])
+
+
 #mask = np.zeros_like(imgray)
-cv2.drawContours(mask, [debug_contours[1]], contourIdx=0, color=(100,200,100), thickness=1)
-cv2.imshow("title", mask)
-cv2.waitKey()
+#cv2.drawContours(mask, [selected_contours[0]], contourIdx=0, color=(255,200,100), thickness=1)
+#cv2.imshow("title", mask)
+#cv2.waitKey()
+#cv2.drawContours(mask, [selected_contours[1]], contourIdx=0, color=(100,200,100), thickness=1)
+#cv2.imshow("title", mask)
+#cv2.waitKey()
 
 
 
-purged_contours = util_contours.extractOverlappingContours(debug_contours)
+print("purging!")
+purged_contours = util_contours.extractOverlappingContours(selected_contours)
+print("purging again!")
+purged_contours = util_contours.extractOverlappingContours(purged_contours)
+
+
 print("Found "+str(len(purged_contours))+" intersecting contours:")
-print("Contours=", purged_contours)
+#print("Contours=", purged_contours)
 
 
 for i, contour in enumerate(purged_contours):
     print("drawing contour num ", i)
     mask = np.zeros_like(imgray)
-    cv2.drawContours(mask, contour, contourIdx=0, color=(100,255,100), thickness=1)
+    cv2.drawContours(mask, [contour], contourIdx=0, color=(100,255,100), thickness=1)
     cv2.imshow("title", mask)
     cv2.waitKey()    
-
-'''                
-multipoly = shapely.geometry.MultiPolygon(polygons=polygons)
-multipoly_simplified = multipoly.simplify(tolerance=5, preserve_topology=True)
-
-polygon_array = np.array(multipoly_simplified.boundary.coords[:])
-contour_opencv= np.array(polygon_array).reshape((-1,1,2)).astype(np.int32)
-cv2.drawContours(im, [contour_opencv], 0, (0,255,0), 3)
-cv2.imshow("title", im)
-cv2.waitKey()
 '''
 
+'''
+for i, contour in enumerate(contours_simplified):
+    print("drawing contour num ", i)
+    mask = np.zeros_like(imgray)
+
+    cv2.drawContours(mask, contour, contourIdx=0, color=(255,200,100), thickness=1)
+
+    cv2.fillPoly(mask, pts =[contour], color=(255,255,255))
+    #cv2.drawContours(mask, [contour], contourIdx=0, color=(100,255,100), thickness=2)
+    cv2.imshow("title", mask)
+    cv2.waitKey() 
+'''   
 
