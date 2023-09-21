@@ -4,8 +4,6 @@ import cv2
 import numpy as np
 import util_contours
 import os
-import traceback
-
 #import topojson as tp
 #import geopandas as gpd
 
@@ -17,7 +15,7 @@ color_assignment = { #color from original segmentation (grayscale) to final colo
     239: (111,128,191,255)
 }
 
-def simplify(polygon, tolerance = 4.0):#5.0 , preserve_topology=False
+def simplify(polygon, tolerance = 4.0):#5.0
     """ Simplify a polygon with shapely.
     Polygon: ndarray
         ndarray of the polygon positions of N points with the shape (N,2)
@@ -81,7 +79,7 @@ def process(inputpath, outputpath):
                 if cv2.contourArea(contour) > 10:
                     print("Color number "+str(colorNum)+"="+str(color))
                     #mask = np.zeros_like(imgray)
-                    #cv2.drawContours(mask, [contour], contourIdx=0, color=(100,200,100), thickness=2)
+                    #cv2.drawContours(mask, [contour], contourIdx=0, color=(100,200,100), thickness=3)
                     #cv2.imshow("title", mask)
                     #cv2.waitKey()
                     #use a try here because simplify may fail in some geometries
@@ -94,12 +92,9 @@ def process(inputpath, outputpath):
                         #cv2.imshow("title", mask)
                         #cv2.waitKey()
                         totalContours = totalContours+1
+                        
                     except:
                         print("Contour discarded as contains multi-part geometries")
-                        print(traceback.format_exc())
-                        print("Using original contour without simplification")
-                        cv2.fillPoly(imcolor, pts =[contour], color=color_assignment[color])
-                        
             colorNum = colorNum+1
     imcolor = pixelate(imcolor, 512, 512)
     #cv2.imshow("title", imcolor)
@@ -112,6 +107,6 @@ def process(inputpath, outputpath):
 inputpath = '/Users/rtous/DockerVolume/seg4art/data/scenes/tiktok2/out_pngs'
 outputpath = '/Users/rtous/DockerVolume/seg4art/data/scenes/tiktok2/out_opencv/'
 for filename in sorted(os.listdir(inputpath)):
-    if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.tiff', '.bmp', '.gif')):# and filename=="00066.png":
+    if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.tiff', '.bmp', '.gif')):
         process(os.path.join(inputpath, filename), os.path.join(outputpath, filename))
 

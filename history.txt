@@ -1,1 +1,10 @@
+stack
+------
+
+
+
+./pngfinal2video.sh $HOME/DockerVolume/seg4art/data/scenes/tiktok2
+python lowpoly_last.py 
+source myVenv/bin/activate
+
 ./subsample.sh $HOME/DockerVolume/seg4art/data/scenes/tiktok2 1
