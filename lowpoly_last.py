@@ -17,15 +17,19 @@ color_assignment = { #color from original segmentation (grayscale) to final colo
     239: (111,128,191,255)
 }
 
-def simplify(polygon, tolerance = 4.0):#5.0 , preserve_topology=False
+def simplify(opencvContour, tolerance = 4.0):#5.0 , preserve_topology=False
     """ Simplify a polygon with shapely.
     Polygon: ndarray
         ndarray of the polygon positions of N points with the shape (N,2)
     """
+    polygon = np.squeeze(opencvContour)
     poly = shapely.geometry.Polygon(polygon)
     poly_s = poly.simplify(tolerance=tolerance, preserve_topology=False)
     # convert it back to numpy
-    return np.array(poly_s.boundary.coords[:])
+    coords = np.array(poly_s.boundary.coords[:])
+    #Convert shapely polygon (N, 2) to opencv contour (N-1, 1, 2)
+    opencvContourSimplified = coords.reshape((-1,1,2)).astype(np.int32)    
+    return opencvContourSimplified
 
 def addAlpha(img):
     #b_channel, g_channel, r_channel = cv2.split(img)
@@ -46,17 +50,13 @@ def pixelate(input, w, h): # w,h  Desired "pixelated" size
     output = cv2.resize(temp, (width, height), interpolation=cv2.INTER_NEAREST)
     return output
 
-def process(inputpath, outputpath):
-    print("process("+inputpath+", "+outputpath+")")
-    #Read image with opencv
-    im = cv2.imread(inputpath)
-    assert im is not None, "file could not be read, check with os.path.exists()"
-    #cv2.imshow("title", im)
-    #cv2.waitKey()
+def getContours(im):
     height, width = im.shape[:2]
     imgray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
-    imcolor = np.zeros_like(im)
-    imcolor = addAlpha(imcolor)
+
+    contours_raw = []
+    contours_simplified = []
+    colors = []
 
     #split image in C color regions (with a minimum of 1000 pixels)
     selected_contours = []
@@ -69,9 +69,31 @@ def process(inputpath, outputpath):
         mask[imgray == color] = 255
         area = cv2.countNonZero(mask)
         if area > 1000 and area < height*width/2: #avoid the frame contour
+            
             #split color mask in N contours (with a minimum of area > 10)
             ret, thresh = cv2.threshold(mask, 127, 255, 0)
             image, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+            
+            '''
+            #remove anything outside the contour
+            mask = cropContours(mask, contours)
+
+            cv2.imshow("title", mask)
+            cv2.waitKey() 
+
+            #find contours again
+            ret, thresh = cv2.threshold(mask, 127, 255, 0)
+            image, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+            
+            #dilate 1 pixel (to avoid gaps between simplified contours)
+            kernel = np.ones((4, 4), np.uint8)
+            mask = cv2.dilate(mask, kernel, iterations=1)
+
+            #find contours again
+            ret, thresh = cv2.threshold(mask, 127, 255, 0)
+            image, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+            '''
+
             #Retrieval modes: https://docs.opencv.org/4.x/d3/dc0/group__imgproc__shape.html#ga819779b9857cc2f8601e6526a3a5bc71
             #RETR_TREE, RETR_LIST, RETR_EXTERNAL
             #Contour approx mode: https://docs.opencv.org/4.x/d3/dc0/group__imgproc__shape.html#ga4303f45752694956374734a03c54d5ff
@@ -80,38 +102,97 @@ def process(inputpath, outputpath):
             for j, contour in enumerate(contours):
                 if cv2.contourArea(contour) > 10:
                     print("Color number "+str(colorNum)+"="+str(color))
-                    #mask = np.zeros_like(imgray)
-                    #cv2.drawContours(mask, [contour], contourIdx=0, color=(100,200,100), thickness=2)
-                    #cv2.imshow("title", mask)
-                    #cv2.waitKey()
-                    #use a try here because simplify may fail in some geometries
-                    try:
-                        simplifiedContour = simplify(np.squeeze(contour))
-                        #Convert shapely polygon (N, 2) to opencv contour (N-1, 1, 2)
-                        simplifiedContourReshaped = np.array(simplifiedContour).reshape((-1,1,2)).astype(np.int32)
-                        #cv2.fillPoly(mask, pts =[simplifiedContourReshaped], color=(255,255,255))
-                        cv2.fillPoly(imcolor, pts =[simplifiedContourReshaped], color=color_assignment[color])
-                        #cv2.imshow("title", mask)
-                        #cv2.waitKey()
-                        totalContours = totalContours+1
-                    except:
-                        print("Contour discarded as contains multi-part geometries")
-                        print(traceback.format_exc())
-                        print("Using original contour without simplification")
-                        cv2.fillPoly(imcolor, pts =[contour], color=color_assignment[color])
-                        
+                    #dilate 1 pixel (to avoid gaps between simplified contours)
+                    #remove anything outside the contour
+                    part_mask = cropContours(mask, contour)
+                    kernel = np.ones((4, 4), np.uint8)
+                    part_mask = cv2.dilate(part_mask, kernel, iterations=1)
+                    #cv2.imshow("title", part_mask)
+                    #cv2.waitKey() 
+
+                    #find contours again
+                    ret, thresh = cv2.threshold(part_mask, 127, 255, 0)
+                    image, contours_dilated, hierarchy = cv2.findContours(thresh, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+                    max_contour = max(contours_dilated, key = cv2.contourArea)
+
+                    contours_raw.append(max_contour)
+                    colors.append(color)
+                    test = np.zeros_like(imgray)
+                    #cv2.drawContours(test, [max_contour], contourIdx=0, color=(100,200,100), thickness=2)
+                    #cv2.imshow("title", test)
+                    #cv2.waitKey()                           
             colorNum = colorNum+1
-    imcolor = pixelate(imcolor, 512, 512)
-    #cv2.imshow("title", imcolor)
-    #cv2.waitKey()
-    print("cv2.imwrite("+outputpath+")")
     print("Found "+str(colorNum)+" colors")
     print("Found "+str(totalContours)+" contours")
-    cv2.imwrite(outputpath, imcolor)
+    return contours_raw, colors
 
+def cropContours(im, contour):
+    im_res = np.zeros_like(im)
+    cv2.fillPoly(im_res, pts =[contour], color=(255,255,255))
+    return im_res
+
+def simplifyContours(contours):
+    contours_simplified = []
+    for contour in contours:
+        try:
+            simplifiedContour = simplify(contour)
+            contours_simplified.append(simplifiedContour)
+        except:
+            print("Contour discarded as contains multi-part geometries")
+            print(traceback.format_exc())
+            print("Using original contour without simplification")
+            contours_simplified.append(contour)
+    return contours_simplified
+    
+def fillContours(contours, colors, imcolor):
+    for i, contour in enumerate(contours):
+        cv2.fillPoly(imcolor, pts =[contour], color=color_assignment[colors[i]])
+    imcolor_pixelated = pixelate(imcolor, 512, 512)
+    return imcolor_pixelated
+
+def drawContours(contours, colors, imcolor):
+    for i, contour in enumerate(contours):
+        cv2.drawContours(imcolor, [contour], contourIdx=0, color=color_assignment[colors[i]], thickness=1)        
+    #imcolor_pixelated = pixelate(imcolor, 512, 512)
+    return imcolor
+
+'''
+        MAIN
+'''
 inputpath = '/Users/rtous/DockerVolume/seg4art/data/scenes/tiktok2/out_pngs'
 outputpath = '/Users/rtous/DockerVolume/seg4art/data/scenes/tiktok2/out_opencv/'
+outputpath_contours = '/Users/rtous/DockerVolume/seg4art/data/scenes/tiktok2/out_opencv_contours/'
+if not os.path.exists(outputpath):
+   os.makedirs(outputpath)
+if not os.path.exists(outputpath_contours):
+   os.makedirs(outputpath_contours)
 for filename in sorted(os.listdir(inputpath)):
     if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.tiff', '.bmp', '.gif')):# and filename=="00066.png":
-        process(os.path.join(inputpath, filename), os.path.join(outputpath, filename))
+        print("process("+inputpath+", "+outputpath+")")
+        #Read image with opencv
+        im = cv2.imread(os.path.join(inputpath, filename))
+        assert im is not None, "file could not be read, check with os.path.exists()"
+        #cv2.imshow("title", im)
+        #cv2.waitKey()
+        imgray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
+        
+        #find relevant contours
+        contours_raw, colors = getContours(im)
 
+        #align close contours
+        #contours_raw = util_contours.fillGaps(contours_raw)
+
+        #simplify
+        contours_simplified = simplifyContours(contours_raw)
+
+        #draw contours, pixelate and write file
+        imcolor = np.zeros_like(im)
+        imcolor = addAlpha(imcolor)
+        imcolor_result = fillContours(contours_simplified, colors, imcolor)
+        cv2.imwrite(os.path.join(outputpath, filename), imcolor_result)
+        print("cv2.imwrite("+os.path.join(outputpath, filename)+")")
+
+        imcolor_contours = np.zeros_like(im)
+        imcolor_contours = addAlpha(imcolor_contours)
+        imcolor_contours_result = drawContours(contours_raw, colors, imcolor_contours)
+        cv2.imwrite(os.path.join(outputpath_contours, filename), imcolor_contours_result)

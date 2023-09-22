@@ -3,7 +3,7 @@ import shapely.geometry
 import cv2
 import numpy as np
 
-def extractOverlappingContours(contours):
+def fillGaps(contours):
     '''
     When coincident fragments, split the contours
     '''
@@ -145,7 +145,7 @@ def alignContours(c1, c2):
     for k in range(len(distancesSorted[0])):
         i = distancesSorted[0][k][0]
         j = distancesSorted[0][k][1]
-        if distances[i][j] < 5 and i not in assignedI and j not in assignedJ:
+        if distances[i][j] < 10 and i not in assignedI and j not in assignedJ:
             if (distances[i][j]!=0):
                 print("matching!")
             assignedI.append(i)
