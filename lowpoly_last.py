@@ -10,11 +10,15 @@ import traceback
 #import geopandas as gpd
 
 #BGR!!!!
-
+'''
 color_assignment = { #color from original segmentation (grayscale) to final color
     170: (0,64,158,255), 
     174: (64,49,47,255),
     239: (111,128,191,255)
+}
+'''
+color_assignment = { #color from original segmentation (grayscale) to final color
+    162: (0,64,158,255)
 }
 
 def simplify(opencvContour, tolerance = 4.0):#5.0 , preserve_topology=False
@@ -120,7 +124,8 @@ def getContours(im):
                     test = np.zeros_like(imgray)
                     #cv2.drawContours(test, [max_contour], contourIdx=0, color=(100,200,100), thickness=2)
                     #cv2.imshow("title", test)
-                    #cv2.waitKey()                           
+                    #cv2.waitKey() 
+                    totalContours = totalContours+1                          
             colorNum = colorNum+1
     print("Found "+str(colorNum)+" colors")
     print("Found "+str(totalContours)+" contours")
@@ -159,19 +164,28 @@ def drawContours(contours, colors, imcolor):
 '''
         MAIN
 '''
-inputpath = '/Users/rtous/DockerVolume/seg4art/data/scenes/tiktok2/out_pngs'
-outputpath = '/Users/rtous/DockerVolume/seg4art/data/scenes/tiktok2/out_opencv/'
-outputpath_contours = '/Users/rtous/DockerVolume/seg4art/data/scenes/tiktok2/out_opencv_contours/'
+inputpath = '/Users/rtous/DockerVolume/seg4art/data/scenes/assault1_1/samtrack_v1'
+outputpath = '/Users/rtous/DockerVolume/seg4art/data/scenes/assault1_1/out_opencv/'
+outputpath_contours = '/Users/rtous/DockerVolume/seg4art/data/scenes/assault1_1/out_opencv_contours/'
+
+#inputpath = '/Users/rtous/DockerVolume/seg4art/data/scenes/tiktok2/out_pngs'
+#outputpath = '/Users/rtous/DockerVolume/seg4art/data/scenes/tiktok2/out_opencv/'
+#outputpath_contours = '/Users/rtous/DockerVolume/seg4art/data/scenes/tiktok2/out_opencv_contours/'
+
 if not os.path.exists(outputpath):
    os.makedirs(outputpath)
 if not os.path.exists(outputpath_contours):
    os.makedirs(outputpath_contours)
 for filename in sorted(os.listdir(inputpath)):
     if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.tiff', '.bmp', '.gif')):# and filename=="00066.png":
-        print("process("+inputpath+", "+outputpath+")")
+        print("process("+inputpath+"/"+filename+", "+outputpath+")")
         #Read image with opencv
         im = cv2.imread(os.path.join(inputpath, filename))
         assert im is not None, "file could not be read, check with os.path.exists()"
+        
+        #add a border (to avoid edge contours to be discarded)
+        #im = cv2.copyMakeBorder(im, 50, 50, 50, 50, cv2.BORDER_CONSTANT, None, value = 0) 
+
         #cv2.imshow("title", im)
         #cv2.waitKey()
         imgray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)

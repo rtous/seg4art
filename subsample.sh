@@ -11,7 +11,7 @@ PNG=$2
 
 cd $INPUT_DIR
 
-#mkdir images
+mkdir images
 
 #if [ "$PNG" == 1 ]; then
     ffmpeg -i $INPUT_DIR/footage.mp4 -r 5 $"images/$no_ext%03d.png"
@@ -19,7 +19,7 @@ cd $INPUT_DIR
     ffmpeg -i $INPUT_DIR/footage.mp4 -r 5 $"images/$no_ext%03d.jpg"
 #fi 
 
-mkdir video
+mkdir imagesFull
 
 if [ "$PNG" == 1 ]; then
     ffmpeg -i $INPUT_DIR/footage.mp4 -r 25 $"imagesFull/$no_ext%03d.png"
