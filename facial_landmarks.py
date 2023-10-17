@@ -21,7 +21,7 @@ def process(inputpath, outputpath):
     # initialize built-in face detector in dlib
     detector = dlib.get_frontal_face_detector()
     # initialize face landmark predictor
-    PREDICTOR_PATH = "./shape_predictor_68_face_landmarks.dat"#https://github.com/davisking/dlib-models
+    PREDICTOR_PATH = "./models/shape_predictor_68_face_landmarks.dat"#https://github.com/davisking/dlib-models
     predictor = dlib.shape_predictor(PREDICTOR_PATH)
     #resize to width 500
     #im_resized = cv2.resize(im, (500, 500), interpolation= cv2.INTER_LINEAR)
