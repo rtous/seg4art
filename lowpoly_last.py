@@ -10,16 +10,23 @@ import traceback
 #import geopandas as gpd
 
 #BGR!!!!
-'''
+
 color_assignment = { #color from original segmentation (grayscale) to final color
     170: (0,64,158,255), 
     174: (64,49,47,255),
+    162: (64,49,47,255),
+    179: (64,49,47,255),
+    196: (64,49,47,255),
+    207: (64,49,47,255),
+    255: (64,49,47,255),
     239: (111,128,191,255)
 }
+
 '''
 color_assignment = { #color from original segmentation (grayscale) to final color
     162: (0,64,158,255)
 }
+'''
 
 def simplify(opencvContour, tolerance = 4.0):#5.0 , preserve_topology=False
     """ Simplify a polygon with shapely.
@@ -164,9 +171,9 @@ def drawContours(contours, colors, imcolor):
 '''
         MAIN
 '''
-inputpath = '/Users/rtous/DockerVolume/seg4art/data/scenes/assault1_1/samtrack_v1'
-outputpath = '/Users/rtous/DockerVolume/seg4art/data/scenes/assault1_1/out_opencv/'
-outputpath_contours = '/Users/rtous/DockerVolume/seg4art/data/scenes/assault1_1/out_opencv_contours/'
+inputpath = '/Users/rtous/DockerVolume/seg4art/data/scenes/ruben2/samtrack'
+outputpath = '/Users/rtous/DockerVolume/seg4art/data/scenes/ruben2/out_opencv/'
+outputpath_contours = '/Users/rtous/DockerVolume/seg4art/data/scenes/ruben2/out_opencv_contours/'
 
 #inputpath = '/Users/rtous/DockerVolume/seg4art/data/scenes/tiktok2/out_pngs'
 #outputpath = '/Users/rtous/DockerVolume/seg4art/data/scenes/tiktok2/out_opencv/'
