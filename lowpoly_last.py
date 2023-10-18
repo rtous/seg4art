@@ -5,21 +5,28 @@ import numpy as np
 import util_contours
 import os
 import traceback
+import facial_landmarks
 
 #import topojson as tp
 #import geopandas as gpd
 
 #BGR!!!!
-
+#hair: 5,56,182
+#skin: 121,141,205 #darker = 106,125,171 #contours: 118, 113, 168
+	#NO right arm: 118, 135, 168
+#left leg:72,72,72 #right leg:2,2,2
+#shirt:49,32,46 #shoulder:44,34,42 
+#ball:89,69,4
+#pupils: 61, 71, 118
 color_assignment = { #color from original segmentation (grayscale) to final color
-    170: (0,64,158,255), 
-    174: (64,49,47,255),
-    162: (64,49,47,255),
-    179: (64,49,47,255),
-    196: (64,49,47,255),
-    207: (64,49,47,255),
-    255: (64,49,47,255),
-    239: (111,128,191,255)
+    170: (121,141,205,255), #right arm
+    174: (34,34,34,255),#left leg
+    162: (89,69,4,255),#ball
+    179: (121,141,205,255),#face 
+    196: (22,22,22,255),#right leg
+    207: (49,32,46,255),#shirt
+    255: (5,56,182,255),#hair
+    239: (44,34,42,255)#right shoulder
 }
 
 '''
@@ -155,13 +162,107 @@ def simplifyContours(contours):
             print("Using original contour without simplification")
             contours_simplified.append(contour)
     return contours_simplified
-    
-def fillContours(contours, colors, imcolor):
-    for i, contour in enumerate(contours):
-        cv2.fillPoly(imcolor, pts =[contour], color=color_assignment[colors[i]])
-    imcolor_pixelated = pixelate(imcolor, 512, 512)
-    return imcolor_pixelated
 
+#not used
+def shadow_contour(contour):
+	contour_shifted = np.copy(contour)
+	for i in range(len(contour_shifted)):
+		contour_shifted[i][0] = contour_shifted[i][0] + 5
+	return contour_shifted
+#not used
+def darkColor(color):
+	return (abs(color[0]/2), abs(color[1]/2), abs(color[2]/2), 255)
+
+def fillContours(contours, colors, imcolor):
+	for i, contour in enumerate(contours):
+		#shadow = shadow_contour(contour)
+		#cv2.fillPoly(imcolor, pts =[shadow], color=darkColor(color_assignment[colors[i]]))
+		cv2.fillPoly(imcolor, pts =[contour], color=color_assignment[colors[i]])
+
+	imcolor_pixelated = pixelate(imcolor, 512, 512)
+	return imcolor_pixelated
+
+def change_brightness(img, value=-30):
+    _, _, _, a_channel = cv2.split(img)
+    #img_BGRA = cv2.merge((b_channel, g_channel, r_channel, alpha_channel))
+    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    h, s, v = cv2.split(hsv)
+    v = cv2.add(v,value)
+    v[v > 255] = 255
+    v[v < 0] = 0
+    final_hsv = cv2.merge((h, s, v))
+    img = cv2.cvtColor(final_hsv, cv2.COLOR_HSV2BGR)
+    img = np.dstack((img, a_channel))
+    return img
+
+
+
+def addShadow(imcolor):    
+    imcolor_result_shadow = imcolor.copy()
+    height, width = imcolor_result_shadow.shape[:2]
+    offsetx = 10
+    offsety = 0
+    M = np.float32([[1, 0, offsetx], [0, 1, offsety]])
+    dst_mat = np.zeros((height, width, 4), np.uint8)
+    size = (width, height)
+    '''
+    dst_mat = np.zeros((height, width, 4), np.uint8)
+	# 回転させたい角度（正の値は反時計回り）
+    size = (width, height)
+    center = (width/2,height/2)
+    angle = -45.0
+	# 拡大比率
+    scale = 0.5
+	# 回転変換行列の算出
+    rotation_matrix = cv2.getRotationMatrix2D(center, angle, scale)
+    imcolor_result_shadow = cv2.warpAffine(imcolor_result_shadow, rotation_matrix, size, dst_mat, flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_TRANSPARENT)
+    '''
+    #imcolor_result_shadow = cv2.warpAffine(imcolor_result_shadow, M, size, dst_mat, flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_TRANSPARENT)
+    imcolor_result_shadow = cv2.warpAffine(imcolor_result_shadow, M, size, dst_mat)
+    #alpha = 1.5 # Contrast control
+    #beta = 10 # Brightness control
+    #imcolor_result_shadow = cv2.convertScaleAbs(imcolor_result_shadow, alpha=alpha, beta=beta)
+    imcolor_result_shadow = change_brightness(imcolor_result_shadow)
+    #imcolor_result_shadow = imcolor + imcolor_result_shadow
+
+    #imcolor_result_shadow = cv2.addWeighted(imcolor, 1, imcolor_result_shadow, 1, 0) 
+    #imcolor[imcolor[:, :, 1:].all(axis=-1)] = 0
+	#img2[img2[:, :, 1:].all(axis=-1)] = 0
+
+
+
+    '''
+    imcolor = np.zeros_like(imcolor)
+    #imcolor = addAlpha(imcolor)
+    cv2.circle(imcolor, (100,100), 100, (255,0,0,255), thickness=-1)
+
+    imcolor_result_shadow = np.zeros_like(imcolor_result_shadow)
+    #imcolor_result_shadow = addAlpha(imcolor_result_shadow)
+    cv2.circle(imcolor_result_shadow, (140,140), 100, (0,255,0,255), thickness=-1)
+    '''
+    '''
+    gray2 = cv2.cvtColor(imcolor_result_shadow, cv2.COLOR_BGR2GRAY)
+    thresh2 = cv2.threshold(gray2, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)[1]
+
+    result1 = cv2.bitwise_and(imcolor_result_shadow, imcolor_result_shadow, mask=thresh2)
+    result2 = cv2.bitwise_and(imcolor, imcolor, mask=255-thresh2)
+    imcolor_result_shadow = cv2.add(result1, result2)
+    '''
+    imcolor_result_shadow = overlay(imcolor, imcolor_result_shadow)
+    
+    #imcolor_result_shadow = result1 + imcolor_result_shadow
+
+    #imcolor_result_shadow = cv2.addWeighted(imcolor, 1, imcolor_result_shadow, 1, 0) 
+    
+    return imcolor_result_shadow
+def overlay(bottomImage, topImage):
+    gray2 = cv2.cvtColor(bottomImage, cv2.COLOR_BGR2GRAY)
+    thresh2 = cv2.threshold(gray2, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)[1]
+
+    result1 = cv2.bitwise_and(bottomImage, bottomImage, mask=thresh2)
+    result2 = cv2.bitwise_and(topImage, topImage, mask=255-thresh2)
+    return cv2.add(result1, result2)
+   
 def drawContours(contours, colors, imcolor):
     for i, contour in enumerate(contours):
         cv2.drawContours(imcolor, [contour], contourIdx=0, color=color_assignment[colors[i]], thickness=1)        
@@ -171,6 +272,7 @@ def drawContours(contours, colors, imcolor):
 '''
         MAIN
 '''
+inputpathOriginal = '/Users/rtous/DockerVolume/seg4art/data/scenes/ruben2/imagesFull'
 inputpath = '/Users/rtous/DockerVolume/seg4art/data/scenes/ruben2/samtrack'
 outputpath = '/Users/rtous/DockerVolume/seg4art/data/scenes/ruben2/out_opencv/'
 outputpath_contours = '/Users/rtous/DockerVolume/seg4art/data/scenes/ruben2/out_opencv_contours/'
@@ -189,7 +291,7 @@ for filename in sorted(os.listdir(inputpath)):
         #Read image with opencv
         im = cv2.imread(os.path.join(inputpath, filename))
         assert im is not None, "file could not be read, check with os.path.exists()"
-        
+       
         #add a border (to avoid edge contours to be discarded)
         #im = cv2.copyMakeBorder(im, 50, 50, 50, 50, cv2.BORDER_CONSTANT, None, value = 0) 
 
@@ -210,10 +312,18 @@ for filename in sorted(os.listdir(inputpath)):
         imcolor = np.zeros_like(im)
         imcolor = addAlpha(imcolor)
         imcolor_result = fillContours(contours_simplified, colors, imcolor)
+
+        #add shadows
+        imcolor_result = addShadow(imcolor_result)
+
+        #draw face elements
+        facial_landmarks.faceFromPath(os.path.join(inputpathOriginal, filename), imcolor_result)
+        
+        #write image
         cv2.imwrite(os.path.join(outputpath, filename), imcolor_result)
         print("cv2.imwrite("+os.path.join(outputpath, filename)+")")
 
         imcolor_contours = np.zeros_like(im)
         imcolor_contours = addAlpha(imcolor_contours)
-        imcolor_contours_result = drawContours(contours_raw, colors, imcolor_contours)
+        imcolor_contours_result = drawContours(contours_raw, colors, imcolor_contours)    
         cv2.imwrite(os.path.join(outputpath_contours, filename), imcolor_contours_result)
