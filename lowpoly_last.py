@@ -182,7 +182,7 @@ def fillContours(contours, colors, imcolor):
 	imcolor_pixelated = pixelate(imcolor, 512, 512)
 	return imcolor_pixelated
 
-def change_brightness(img, value=-30):
+def change_brightness(img, value=100):
     _, _, _, a_channel = cv2.split(img)
     #img_BGRA = cv2.merge((b_channel, g_channel, r_channel, alpha_channel))
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
@@ -200,7 +200,7 @@ def change_brightness(img, value=-30):
 def addShadow(imcolor):    
     imcolor_result_shadow = imcolor.copy()
     height, width = imcolor_result_shadow.shape[:2]
-    offsetx = 10
+    offsetx = 100
     offsety = 0
     M = np.float32([[1, 0, offsetx], [0, 1, offsety]])
     dst_mat = np.zeros((height, width, 4), np.uint8)
@@ -248,21 +248,41 @@ def addShadow(imcolor):
     result2 = cv2.bitwise_and(imcolor, imcolor, mask=255-thresh2)
     imcolor_result_shadow = cv2.add(result1, result2)
     '''
-    imcolor_result_shadow = overlay(imcolor, imcolor_result_shadow)
+    imcolor_result_shadow = overlay(bottomImage=imcolor, topImage=imcolor_result_shadow)
     
     #imcolor_result_shadow = result1 + imcolor_result_shadow
 
     #imcolor_result_shadow = cv2.addWeighted(imcolor, 1, imcolor_result_shadow, 1, 0) 
     
     return imcolor_result_shadow
+'''
 def overlay(bottomImage, topImage):
     gray2 = cv2.cvtColor(bottomImage, cv2.COLOR_BGR2GRAY)
     thresh2 = cv2.threshold(gray2, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)[1]
 
     result1 = cv2.bitwise_and(bottomImage, bottomImage, mask=thresh2)
     result2 = cv2.bitwise_and(topImage, topImage, mask=255-thresh2)
-    return cv2.add(result1, result2)
-   
+    return cv2.add(bottomImage, result2)
+'''
+
+def overlay(bottomImage, topImage):
+    diff = cv2.absdiff(bottomImage, topImage)
+    mask = cv2.cvtColor(diff, cv2.COLOR_BGR2GRAY)
+    imask =  mask>0
+    topImage_minus_diff = np.zeros_like(topImage, np.uint8)
+    topImage_minus_diff[imask] = topImage[imask]
+
+    #cv2.absdiff(img1, img2)
+    #gray2 = cv2.cvtColor(bottomImage, cv2.COLOR_BGR2GRAY)
+    #thresh2 = cv2.threshold(gray2, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)[1]
+
+    #result1 = cv2.bitwise_and(bottomImage, bottomImage, mask=thresh2)
+    #result2 = cv2.bitwise_and(topImage, topImage, mask=255-thresh2)
+    
+    return diff
+    #return cv2.add(bottomImage, topImage_minus_diff)
+
+
 def drawContours(contours, colors, imcolor):
     for i, contour in enumerate(contours):
         cv2.drawContours(imcolor, [contour], contourIdx=0, color=color_assignment[colors[i]], thickness=1)        
