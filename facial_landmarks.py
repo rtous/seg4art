@@ -34,9 +34,17 @@ def process(inputpath, outputpath):
     cv2.imwrite(outputpath, im_res)
 
 
-def faceFromPath(inputpath, im_res):
+def faceFromPath(inputpath, im_res):   
     print("faceFromPath("+inputpath+", im_res)")
     im = cv2.imread(inputpath)
+    if im is None:
+        path, file_extension = os.path.splitext(inputpath)
+        if file_extension==".png":
+            print("failed, testing with path: "+path+".jpg")
+            im = cv2.imread(path+".jpg")
+            print("failed, testing with path: "+path+".png")
+        elif file_extension==".jpg":
+            im = cv2.imread(path+".png")
     assert im is not None, "file could not be read, check with os.path.exists()"
     face(im, im_res)
 

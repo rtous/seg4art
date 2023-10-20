@@ -6,6 +6,7 @@ import util_contours
 import os
 import traceback
 import facial_landmarks
+import sys
 
 #import topojson as tp
 #import geopandas as gpd
@@ -18,6 +19,8 @@ import facial_landmarks
 #shirt:49,32,46 #shoulder:44,34,42 
 #ball:89,69,4
 #pupils: 61, 71, 118
+'''
+ruben2
 color_assignment = { #color from original segmentation (grayscale) to final color
     170: (121,141,205,255), #right arm
     174: (34,34,34,255),#left leg
@@ -27,6 +30,19 @@ color_assignment = { #color from original segmentation (grayscale) to final colo
     207: (49,32,46,255),#shirt
     255: (5,56,182,255),#hair
     239: (44,34,42,255)#right shoulder
+}
+'''
+
+color_assignment = { #color from original segmentation (grayscale) to final color
+    170: (121,141,205,255), #right arm
+    174: (34,34,34,255),#left leg
+    162: (89,69,4,255),#ball
+    179: (121,141,205,255),#face 
+    196: (22,22,22,255),#right leg
+    207: (49,32,46,255),#shirt
+    255: (5,56,182,255),#hair
+    239: (44,34,42,255),#right shoulder
+    199: (121,141,205,255),
 }
 
 '''
@@ -200,7 +216,7 @@ def change_brightness(img, value=100):
 def addShadow(imcolor):    
     imcolor_result_shadow = imcolor.copy()
     height, width = imcolor_result_shadow.shape[:2]
-    offsetx = 100
+    offsetx = 10
     offsety = 0
     M = np.float32([[1, 0, offsetx], [0, 1, offsety]])
     dst_mat = np.zeros((height, width, 4), np.uint8)
@@ -248,13 +264,20 @@ def addShadow(imcolor):
     result2 = cv2.bitwise_and(imcolor, imcolor, mask=255-thresh2)
     imcolor_result_shadow = cv2.add(result1, result2)
     '''
-    imcolor_result_shadow = overlay(bottomImage=imcolor, topImage=imcolor_result_shadow)
+    result = overlay(bottomImage=imcolor_result_shadow, topImage=imcolor)
     
     #imcolor_result_shadow = result1 + imcolor_result_shadow
+    '''
+    imcolor_no_alpha, imcolor_alpha = extractAlpha(imcolor)
+    imcolor_result_shadow_no_alpha, imcolor_result_shadow_alpha = extractAlpha(imcolor_result_shadow)
+    result = cv2.addWeighted(imcolor_no_alpha, 1, imcolor_result_shadow_no_alpha, 1, 0) 
+    result_alpha = np.bitwise_or(imcolor_alpha, imcolor_result_shadow_alpha)
+    result = addExtractedAlpha(result, result_alpha) 
+	'''
 
-    #imcolor_result_shadow = cv2.addWeighted(imcolor, 1, imcolor_result_shadow, 1, 0) 
+    #result = cv2.addWeighted(imcolor, 1, imcolor_result_shadow, 1, 0) 
     
-    return imcolor_result_shadow
+    return result
 '''
 def overlay(bottomImage, topImage):
     gray2 = cv2.cvtColor(bottomImage, cv2.COLOR_BGR2GRAY)
@@ -265,23 +288,30 @@ def overlay(bottomImage, topImage):
     return cv2.add(bottomImage, result2)
 '''
 
+'''
+#Not currently used
+def extractAlpha(img):
+	(B, G, R, A) = cv2.split(img)
+	img_no_alpha = cv2.merge([B, G, R])
+	return img_no_alpha, A
+
+
+def addExtractedAlpha(img, alpha):
+	(B, G, R) = cv2.split(img)
+	return cv2.merge([B, G, R, alpha])
+'''
+
 def overlay(bottomImage, topImage):
-    diff = cv2.absdiff(bottomImage, topImage)
-    mask = cv2.cvtColor(diff, cv2.COLOR_BGR2GRAY)
-    imask =  mask>0
-    topImage_minus_diff = np.zeros_like(topImage, np.uint8)
-    topImage_minus_diff[imask] = topImage[imask]
-
-    #cv2.absdiff(img1, img2)
-    #gray2 = cv2.cvtColor(bottomImage, cv2.COLOR_BGR2GRAY)
-    #thresh2 = cv2.threshold(gray2, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)[1]
-
-    #result1 = cv2.bitwise_and(bottomImage, bottomImage, mask=thresh2)
-    #result2 = cv2.bitwise_and(topImage, topImage, mask=255-thresh2)
-    
-    return diff
-    #return cv2.add(bottomImage, topImage_minus_diff)
-
+	#Idea: add the topImage (complete) to a sliced bottomImage 
+    #Obtain an opencvmask from the alpha channel of the topImage
+    _, mask = cv2.threshold(topImage[:, :, 3], 0, 255, cv2.THRESH_BINARY)
+    #Invert the mask
+    mask = cv2.bitwise_not(mask) 
+    #Use the mask to cut the intersection from the bottomImage
+    bottomImageMinusTopImage = cv2.bitwise_and(bottomImage, bottomImage, mask=mask)
+    #Add the topImage (complete) and bottomImageMinusTopImage
+    result = bottomImageMinusTopImage + topImage
+    return result
 
 def drawContours(contours, colors, imcolor):
     for i, contour in enumerate(contours):
@@ -292,10 +322,12 @@ def drawContours(contours, colors, imcolor):
 '''
         MAIN
 '''
-inputpathOriginal = '/Users/rtous/DockerVolume/seg4art/data/scenes/ruben2/imagesFull'
-inputpath = '/Users/rtous/DockerVolume/seg4art/data/scenes/ruben2/samtrack'
-outputpath = '/Users/rtous/DockerVolume/seg4art/data/scenes/ruben2/out_opencv/'
-outputpath_contours = '/Users/rtous/DockerVolume/seg4art/data/scenes/ruben2/out_opencv_contours/'
+SCENE_NAME = sys.argv[1]
+
+inputpathOriginal = "/Users/rtous/DockerVolume/seg4art/data/scenes/"+SCENE_NAME+"/imagesFull"
+inputpath = "/Users/rtous/DockerVolume/seg4art/data/scenes/"+SCENE_NAME+"/samtrack"
+outputpath = "/Users/rtous/DockerVolume/seg4art/data/scenes/"+SCENE_NAME+"/out_opencv/"
+outputpath_contours = "/Users/rtous/DockerVolume/seg4art/data/scenes/"+SCENE_NAME+"/out_opencv_contours/"
 
 #inputpath = '/Users/rtous/DockerVolume/seg4art/data/scenes/tiktok2/out_pngs'
 #outputpath = '/Users/rtous/DockerVolume/seg4art/data/scenes/tiktok2/out_opencv/'
