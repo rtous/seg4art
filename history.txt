@@ -1,7 +1,10 @@
 stack
 ------
+./lowpoly.sh man_walk_1_part1
+./pngfinal2video.sh $HOME/DockerVolume/seg4art/data/scenes/man_walk_1_part1
 
-
+./lowpoly.sh green_woman3
+./pngfinal2video.sh $HOME/DockerVolume/seg4art/data/scenes/green_woman3
 
 ./pngfinal2video.sh $HOME/DockerVolume/seg4art/data/scenes/tiktok2
 python lowpoly_last.py 
