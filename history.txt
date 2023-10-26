@@ -1,6 +1,6 @@
 stack
 ------
-./lowpoly.sh man_walk_1_part1
+./lowpoly.sh man_walk_1_part1 0
 ./pngfinal2video.sh $HOME/DockerVolume/seg4art/data/scenes/man_walk_1_part1
 
 ./lowpoly.sh green_woman3

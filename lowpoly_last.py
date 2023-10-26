@@ -45,6 +45,11 @@ color_assignment = { #color from original segmentation (grayscale) to final colo
     199: (121,141,205,255),
 }
 
+random_255_colors_4_channels = [] 
+for i in range(256):
+    col = (np.random.random_sample()*255, np.random.random_sample()*255, np.random.random_sample()*255, 255)
+    random_255_colors_4_channels.append(col)
+
 '''
 color_assignment = { #color from original segmentation (grayscale) to final color
     162: (0,64,158,255)
@@ -190,13 +195,20 @@ def darkColor(color):
 	return (abs(color[0]/2), abs(color[1]/2), abs(color[2]/2), 255)
 
 def fillContours(contours, colors, imcolor):
-	for i, contour in enumerate(contours):
-		#shadow = shadow_contour(contour)
-		#cv2.fillPoly(imcolor, pts =[shadow], color=darkColor(color_assignment[colors[i]]))
-		cv2.fillPoly(imcolor, pts =[contour], color=color_assignment[colors[i]])
+    for i, contour in enumerate(contours):
+        #shadow = shadow_contour(contour)
+        #cv2.fillPoly(imcolor, pts =[shadow], color=darkColor(color_assignment[colors[i]]))
+        if colors[i] in color_assignment:
+            display_color = color_assignment[colors[i]]
+        else:
+            #display_color = ((np.random.random((3*255))*0.7+0.3)*255).astype(np.uint8).tolist()
+            #display_color = [0,0,0]+display_color
+            #display_color = (np.random.random_sample()*255, np.random.random_sample()*255, np.random.random_sample()*255, 255)
+            display_color = random_255_colors_4_channels[i]
+        cv2.fillPoly(imcolor, pts =[contour], color=display_color)
 
-	imcolor_pixelated = pixelate(imcolor, 512, 512)
-	return imcolor_pixelated
+    imcolor_pixelated = pixelate(imcolor, 512, 512)
+    return imcolor_pixelated
 
 def change_brightness(img, value=100):
     _, _, _, a_channel = cv2.split(img)
@@ -315,67 +327,120 @@ def overlay(bottomImage, topImage):
 
 def drawContours(contours, colors, imcolor):
     for i, contour in enumerate(contours):
-        cv2.drawContours(imcolor, [contour], contourIdx=0, color=color_assignment[colors[i]], thickness=1)        
+        if colors[i] in color_assignment:
+            display_color = color_assignment[colors[i]]
+        else:
+            #display_color = ((np.random.random((3*255))*0.7+0.3)*255).astype(np.uint8).tolist()
+            #display_color = [0,0,0]+display_color
+            #display_color = (np.random.random_sample()*255, np.random.random_sample()*255, np.random.random_sample()*255, 255)
+            display_color = random_255_colors_4_channels[i]
+        cv2.drawContours(imcolor, [contour], contourIdx=0, color=display_color, thickness=1)        
     #imcolor_pixelated = pixelate(imcolor, 512, 512)
     return imcolor
-
 '''
-        MAIN
+def idFromColor(palette, c):
+    for i in range(255):  
+        if palette[i][0] == c[0] and palette[i][1] == c[1] and palette[i][2] == c[2]:
+            return i
+    return None
+
+def opencv_to_RGB(c):
+    return c[::-1]
+
+def replaceColors(im, k, palette):
+    #As run segementation many times (one for each keywords list), 
+    #and SAM-Track uses always the same colors, it's necessary 
+    #to change the colors to avoid using the same for different keywords
+    #unique_colours = np.unique(im, axis=0, return_counts = True)
+    unique_colours = np.unique(im.reshape(-1, im.shape[2]), axis=0)
+    for i, color in enumerate(unique_colours):
+        print("color=", color)
+        objectId = idFromColor(palette, opencv_to_RGB(color))
+        print("objectId=", objectId)
+        if objectId != 0:#do not change black
+            mask = cv2.inRange(im, color, color)
+            im[mask==255]=((100+k*50)%255, 100, (objectId*50)%255)
+    return im
 '''
-SCENE_NAME = sys.argv[1]
+if __name__ == "__main__":
+    '''
+            MAIN
+    ''' 
+    '''
+    np.random.seed(200)
+    _palette = ((np.random.random((3*255))*0.7+0.3)*255).astype(np.uint8).tolist()
+    _palette = [0,0,0]+_palette
+    #c = _palette[id*3:id*3+3] USAGE
+    palette = {}
+    for i in range(255):
+        palette[i] = _palette[i*3:i*3+3]
+    im = cv2.imread("060.png")
+    im = replaceColors(im, 0, palette)
+    cv2.imshow("title", im)
+    cv2.waitKey()
+    sys.exit(0)
+    '''
+    
+    SCENE_NAME = sys.argv[1]
+    if len(sys.argv) > 2:
+        addFace = bool(int(sys.argv[2])) #1=yes
+        print("Specified addFace=", addFace)
+    else:
+        addFace = True
 
-inputpathOriginal = "/Users/rtous/DockerVolume/seg4art/data/scenes/"+SCENE_NAME+"/imagesFull"
-inputpath = "/Users/rtous/DockerVolume/seg4art/data/scenes/"+SCENE_NAME+"/samtrack"
-outputpath = "/Users/rtous/DockerVolume/seg4art/data/scenes/"+SCENE_NAME+"/out_opencv/"
-outputpath_contours = "/Users/rtous/DockerVolume/seg4art/data/scenes/"+SCENE_NAME+"/out_opencv_contours/"
+    inputpathOriginal = "/Users/rtous/DockerVolume/seg4art/data/scenes/"+SCENE_NAME+"/imagesFull"
+    inputpath = "/Users/rtous/DockerVolume/seg4art/data/scenes/"+SCENE_NAME+"/samtrack"
+    outputpath = "/Users/rtous/DockerVolume/seg4art/data/scenes/"+SCENE_NAME+"/out_opencv/"
+    outputpath_contours = "/Users/rtous/DockerVolume/seg4art/data/scenes/"+SCENE_NAME+"/out_opencv_contours/"
 
-#inputpath = '/Users/rtous/DockerVolume/seg4art/data/scenes/tiktok2/out_pngs'
-#outputpath = '/Users/rtous/DockerVolume/seg4art/data/scenes/tiktok2/out_opencv/'
-#outputpath_contours = '/Users/rtous/DockerVolume/seg4art/data/scenes/tiktok2/out_opencv_contours/'
+    #inputpath = '/Users/rtous/DockerVolume/seg4art/data/scenes/tiktok2/out_pngs'
+    #outputpath = '/Users/rtous/DockerVolume/seg4art/data/scenes/tiktok2/out_opencv/'
+    #outputpath_contours = '/Users/rtous/DockerVolume/seg4art/data/scenes/tiktok2/out_opencv_contours/'
 
-if not os.path.exists(outputpath):
-   os.makedirs(outputpath)
-if not os.path.exists(outputpath_contours):
-   os.makedirs(outputpath_contours)
-for filename in sorted(os.listdir(inputpath)):
-    if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.tiff', '.bmp', '.gif')):# and filename=="00066.png":
-        print("process("+inputpath+"/"+filename+", "+outputpath+")")
-        #Read image with opencv
-        im = cv2.imread(os.path.join(inputpath, filename))
-        assert im is not None, "file could not be read, check with os.path.exists()"
-       
-        #add a border (to avoid edge contours to be discarded)
-        #im = cv2.copyMakeBorder(im, 50, 50, 50, 50, cv2.BORDER_CONSTANT, None, value = 0) 
+    if not os.path.exists(outputpath):
+       os.makedirs(outputpath)
+    if not os.path.exists(outputpath_contours):
+       os.makedirs(outputpath_contours)
+    for filename in sorted(os.listdir(inputpath)):
+        if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.tiff', '.bmp', '.gif')):# and filename=="00066.png":
+            print("process("+inputpath+"/"+filename+", "+outputpath+")")
+            #Read image with opencv
+            im = cv2.imread(os.path.join(inputpath, filename))
+            assert im is not None, "file could not be read, check with os.path.exists()"
+           
+            #add a border (to avoid edge contours to be discarded)
+            #im = cv2.copyMakeBorder(im, 50, 50, 50, 50, cv2.BORDER_CONSTANT, None, value = 0) 
 
-        #cv2.imshow("title", im)
-        #cv2.waitKey()
-        imgray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
-        
-        #find relevant contours
-        contours_raw, colors = getContours(im)
+            #cv2.imshow("title", im)
+            #cv2.waitKey()
+            imgray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
+            
+            #find relevant contours
+            contours_raw, colors = getContours(im)
 
-        #align close contours
-        #contours_raw = util_contours.fillGaps(contours_raw)
+            #align close contours
+            #contours_raw = util_contours.fillGaps(contours_raw)
 
-        #simplify
-        contours_simplified = simplifyContours(contours_raw)
+            #simplify
+            contours_simplified = simplifyContours(contours_raw)
 
-        #draw contours, pixelate and write file
-        imcolor = np.zeros_like(im)
-        imcolor = addAlpha(imcolor)
-        imcolor_result = fillContours(contours_simplified, colors, imcolor)
+            #draw contours, pixelate and write file
+            imcolor = np.zeros_like(im)
+            imcolor = addAlpha(imcolor)
+            imcolor_result = fillContours(contours_simplified, colors, imcolor)
 
-        #add shadows
-        imcolor_result = addShadow(imcolor_result)
+            #add shadows
+            imcolor_result = addShadow(imcolor_result)
 
-        #draw face elements
-        facial_landmarks.faceFromPath(os.path.join(inputpathOriginal, filename), imcolor_result)
-        
-        #write image
-        cv2.imwrite(os.path.join(outputpath, filename), imcolor_result)
-        print("cv2.imwrite("+os.path.join(outputpath, filename)+")")
+            #draw face elements
+            if addFace:
+                facial_landmarks.faceFromPath(os.path.join(inputpathOriginal, filename), imcolor_result)
+            
+            #write image
+            cv2.imwrite(os.path.join(outputpath, filename), imcolor_result)
+            print("cv2.imwrite("+os.path.join(outputpath, filename)+")")
 
-        imcolor_contours = np.zeros_like(im)
-        imcolor_contours = addAlpha(imcolor_contours)
-        imcolor_contours_result = drawContours(contours_raw, colors, imcolor_contours)    
-        cv2.imwrite(os.path.join(outputpath_contours, filename), imcolor_contours_result)
+            imcolor_contours = np.zeros_like(im)
+            imcolor_contours = addAlpha(imcolor_contours)
+            imcolor_contours_result = drawContours(contours_raw, colors, imcolor_contours)    
+            cv2.imwrite(os.path.join(outputpath_contours, filename), imcolor_contours_result)
