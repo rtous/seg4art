@@ -1,13 +1,85 @@
-stack
-------
-./lowpoly.sh man_walk_1_part1 0
-./pngfinal2video.sh $HOME/DockerVolume/seg4art/data/scenes/man_walk_1_part1
+log in chronological order:
 
+source myVenv/bin/activate
+
+#tiktok2 (need redo)
+./subsample.sh $HOME/DockerVolume/seg4art/data/scenes/tiktok2 1
+!python ruben.py {scene} [\"hair\",\"skin,jacket,shirt\"]????
+./lowpoly.sh tiktok2
+./pngfinal2video.sh $HOME/DockerVolume/seg4art/data/scenes/tiktok2
+
+#green_woman3 (need redo)
+./subsample.sh $HOME/DockerVolume/seg4art/data/scenes/green_woman3 1
+!python ruben.py {scene} [\"hair\",\"skin,jacket,shirt\"]
 ./lowpoly.sh green_woman3
 ./pngfinal2video.sh $HOME/DockerVolume/seg4art/data/scenes/green_woman3
 
-./pngfinal2video.sh $HOME/DockerVolume/seg4art/data/scenes/tiktok2
-python lowpoly_last.py 
-source myVenv/bin/activate
+#man_walk_1
+./subsample.sh $HOME/DockerVolume/seg4art/data/scenes/man_walk_1_part1 1
+!python ruben.py {scene} [\"skin,tshirt\",\"trousers,hair,shoes\"]
+./lowpoly.sh man_walk_1_part1 0
+./subsample.sh $HOME/DockerVolume/seg4art/data/scenes/man_walk_1_part2 1
+!python ruben.py {scene} [\"skin,tshirt\",\"trousers,hair,shoes\"]
+./lowpoly.sh man_walk_1_part2 0
+#moure tot a man_walk_1
+./pngfinal2video.sh $HOME/DockerVolume/seg4art/data/scenes/man_walk_1
 
-./subsample.sh $HOME/DockerVolume/seg4art/data/scenes/tiktok2 1
+#arizona3
+./subsample.sh $HOME/DockerVolume/seg4art/data/scenes/arizona3 1
+!python ruben.py {scene} [\"skin,trousers,tshirt\",\"hair,shoes\"]
+./lowpoly.sh arizona3 1
+./pngfinal2video.sh $HOME/DockerVolume/seg4art/data/scenes/arizona3
+
+#arizona1
+./subsample.sh $HOME/DockerVolume/seg4art/data/scenes/arizona1 1
+!python ruben.py {scene} [\"skin,trousers,tshirt\",\"hair,shoes\"]
+./lowpoly.sh arizona3 0
+./pngfinal2video.sh $HOME/DockerVolume/seg4art/data/scenes/arizona1
+
+#jump2
+./subsample.sh $HOME/DockerVolume/seg4art/data/scenes/jump2 1
+!python ruben.py {scene} [\"skin\",\"hair,shoes,tshirt,shorts\"]
+./lowpoly.sh jump2 0
+./pngfinal2video.sh $HOME/DockerVolume/seg4art/data/scenes/jump2
+
+#jump3
+./subsample.sh $HOME/DockerVolume/seg4art/data/scenes/jump3 1
+!python ruben.py {scene} [\"skin\",\"hair,shoes,tshirt,shorts\"]
+./lowpoly.sh jump3 0
+./pngfinal2video.sh $HOME/DockerVolume/seg4art/data/scenes/jump3
+
+#green_woman1
+./subsample.sh $HOME/DockerVolume/seg4art/data/scenes/green_woman1 1
+!python ruben.py {scene} [\"skin\",\"hair\",\"shoes,shirt,skirt\"]
+./lowpoly.sh green_woman1 0 3
+./pngfinal2video.sh $HOME/DockerVolume/seg4art/data/scenes/green_woman1
+./gifify.sh $HOME/DockerVolume/seg4art/data/scenes/green_woman1
+
+#running1
+./subsample.sh $HOME/DockerVolume/seg4art/data/scenes/running1 1
+!python ruben.py {scene} [\"skin\",\"hair,shoes,tshirt,shorts\"]
+./lowpoly.sh running1 0 5
+./pngfinal2video.sh $HOME/DockerVolume/seg4art/data/scenes/running1
+./gifify.sh $HOME/DockerVolume/seg4art/data/scenes/running1
+
+#shuffle1
+./subsample.sh $HOME/DockerVolume/seg4art/data/scenes/shuffle1 1
+!python ruben.py {scene} [\"skin\",\"hair\",\"shoes,shirt,skirt\"]
+./lowpoly.sh shuffle1 0 5
+./pngfinal2video.sh $HOME/DockerVolume/seg4art/data/scenes/shuffle1
+./gifify.sh $HOME/DockerVolume/seg4art/data/scenes/shuffle1
+
+#shuffle2
+./subsample.sh $HOME/DockerVolume/seg4art/data/scenes/shuffle2 1
+!python ruben.py {scene} [\"skin\",\"hair\",\"shoes,shirt,skirt\"]
+./lowpoly.sh shuffle2 0 5
+./pngfinal2video.sh $HOME/DockerVolume/seg4art/data/scenes/shuffle2
+./gifify.sh $HOME/DockerVolume/seg4art/data/scenes/shuffle2
+
+#shuffle3
+./subsample.sh $HOME/DockerVolume/seg4art/data/scenes/shuffle3 1
+!python ruben.py {scene} [\"skin\",\"hair\",\"shoes,shirt,skirt\"]
+./lowpoly.sh shuffle3 0 5
+./pngfinal2video.sh $HOME/DockerVolume/seg4art/data/scenes/shuffle3
+./gifify.sh $HOME/DockerVolume/seg4art/data/scenes/shuffle3
+

@@ -125,6 +125,47 @@ def draw_nose(shape, im_res):
     cv2.fillPoly(im_res, [pts], color = (118, 113, 168, 255))
 
 def draw_mouth(shape, im_res):
+    #The numbers in the image start in 1, so need to reduce them by 1
+
+    '''
+    thickness = 
+    eye_contour = np.array([
+            [shape.part(48).x, shape.part(48).y], [shape.part(54).x, shape.part(54).y]
+            ], np.int32)
+    
+    pts = eye_contour.reshape((-1, 1, 2))
+    im_res = cv2.polylines(im_res, [pts], True, (199, 199, 199, 255), 1)
+    '''
+
+
+
+    
+    x_plus_top = int(shape.part(49).x - shape.part(53).x)/3
+    x_plus_bottom = int(shape.part(55).x - shape.part(59).x)/3
+    y_plus_left = int(shape.part(49).y - shape.part(59).y)/3
+    y_plus_right = int(shape.part(53).y - shape.part(55).y)/3
+    '''eye_contour = np.array([
+            [shape.part(49).x + x_plus_top, shape.part(49).y - y_plus_left], [shape.part(53).x - x_plus_top, shape.part(53).y - y_plus_right], 
+            [shape.part(53).x - x_plus_top, shape.part(53).y - y_plus_right], [shape.part(55).x + x_plus_bottom, shape.part(55).y + y_plus_right], 
+            [shape.part(55).x + x_plus_bottom, shape.part(55).y + y_plus_right], [shape.part(59).x - x_plus_bottom, shape.part(59).y + y_plus_right],
+            [shape.part(59).x - x_plus_bottom, shape.part(59).y + y_plus_left], [shape.part(49).x + x_plus_top, shape.part(49).y - y_plus_left]
+            ], np.int32)'''
+
+    shape = face_utils.shape_to_np(shape)
+    
+    '''
+    lips_contour = shape[48:59] #mouth interior
+    pts = lips_contour.reshape((-1, 1, 2))
+    #im_res = cv2.polylines(im_res, [pts], True, (199, 199, 199, 255), 1)
+    cv2.fillPoly(im_res, [pts], color = (118, 113, 168, 255))
+    '''
+
+    mouth_contour = shape[60:67] #mouth interior
+    pts = mouth_contour.reshape((-1, 1, 2))
+    #im_res = cv2.polylines(im_res, [pts], True, (199, 199, 199, 255), 1)
+    cv2.fillPoly(im_res, [pts], color = (118, 113, 168, 255))
+
+def draw_mouthOLD(shape, im_res):
     '''
     thickness = 
     eye_contour = np.array([
