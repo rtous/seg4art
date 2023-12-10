@@ -43,7 +43,7 @@ color_assignment = { #color from original segmentation (grayscale) to final colo
 }
 #man_walk_1_part2
 #[\"skin,tshirt\",\"trousers,hair,shoes\"]
-color_assignmentNEW = {
+'''color_assignmentNEW = {
     0: (255,0,255,255), #background (purple)
     1: (121,141,205,255), #skin
     2: (0,0,255,255),#red
@@ -71,6 +71,28 @@ color_assignmentNEW = {
     24: (49,32,46,255),#shirt
     25: (89,69,4,255),#shoes
     26: (89,69,4,255),
+}'''
+color_assignmentNEW = {
+    0: (255,0,255,255), #background (purple)
+    1: (0,255,0,255),
+    2: (121,141,205,255), #skin
+    3: (0,255,0,255),
+    4: (0,255,0,255),
+    5: (0,255,0,255),
+    6: (0,255,0,255),
+    7: (0,255,0,255),
+    8: (0,255,0,255),
+    9: (0,255,0,255),
+    10: (0,255,0,255),
+    11: (34,34,34,255),#trousers
+    12: (49,32,46,255), #tshirt
+    13: (255,0,0,255),
+    14: (5,56,182,255),#hair
+    15: (89,69,4,255),#ball
+    16: (255,0,0,255),
+    17: (255,0,0,255),
+    18: (255,0,0,255),
+    19: (255,0,0,255),
 }
 
 
@@ -144,6 +166,7 @@ def getContours(im):
     height, width = im.shape[:2]
     imgray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
 
+    contours_not_dilated = []
     contours_raw = []
     contours_simplified = []
     colors = []
@@ -176,6 +199,9 @@ def getContours(im):
             image, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
             for j, contour in enumerate(contours):
                 if cv2.contourArea(contour) > 10:
+                    
+                    contours_not_dilated.append(contour)
+    
                     print("Color (opencv)="+str(colorNum)+"="+str(color))
                     #dilate 1 pixel (to avoid gaps between simplified contours)
                     #remove anything outside the contour
@@ -201,7 +227,7 @@ def getContours(im):
             colorNum = colorNum+1
     print("Found "+str(colorNum)+" colors")
     print("Found "+str(totalContours)+" contours")
-    return contours_raw, colors
+    return contours_not_dilated, contours_raw, colors
 
 def cropContours(im, contour):
     im_res = np.zeros_like(im)
@@ -255,6 +281,7 @@ def fillContours(contours, colors, imcolor):
         #print("display_color=", display_color)
         cv2.fillPoly(imcolor, pts =[contour], color=display_color)
     imcolor_pixelated = pixelate(imcolor, 512, 512)
+    #imcolor_pixelated = imcolor
     return imcolor_pixelated
 
 def fillContoursOLD(contours, colors, imcolor):
@@ -336,7 +363,7 @@ if __name__ == "__main__":
     sys.exit(0)
     '''
     
-    SCENE_NAME = sys.argv[1]
+    SCENE_PATH = sys.argv[1]
     if len(sys.argv) > 2:
         addFace = bool(int(sys.argv[2])) #1=yes
         print("Specified addFace=", addFace)
@@ -350,10 +377,14 @@ if __name__ == "__main__":
         shadowSize = 10
     
 
-    inputpathOriginal = "/Users/rtous/DockerVolume/seg4art/data/scenes/"+SCENE_NAME+"/imagesFull"
-    inputpath = "/Users/rtous/DockerVolume/seg4art/data/scenes/"+SCENE_NAME+"/samtrack"
-    outputpath = "/Users/rtous/DockerVolume/seg4art/data/scenes/"+SCENE_NAME+"/out_opencv/"
-    outputpath_contours = "/Users/rtous/DockerVolume/seg4art/data/scenes/"+SCENE_NAME+"/out_opencv_contours/"
+    inputpathOriginal = SCENE_PATH+"/imagesFull"
+    inputpath = SCENE_PATH+"/samtrack"
+    outputpath = SCENE_PATH+"/out_opencv/"
+    outputpath_contours_not_dilated = SCENE_PATH+"/out_opencv_contours_not_dilated/"
+    outputpath_contours = SCENE_PATH+"/out_opencv_contours/"
+    outputpath_simplify = SCENE_PATH+"/out_opencv_simplify/"
+    outputpath_noshadow = SCENE_PATH+"/out_opencv_noshadow/"
+
 
     #inputpath = '/Users/rtous/DockerVolume/seg4art/data/scenes/tiktok2/out_pngs'
     #outputpath = '/Users/rtous/DockerVolume/seg4art/data/scenes/tiktok2/out_opencv/'
@@ -361,8 +392,15 @@ if __name__ == "__main__":
 
     if not os.path.exists(outputpath):
        os.makedirs(outputpath)
-    if not os.path.exists(outputpath_contours):
-       os.makedirs(outputpath_contours)
+    if not os.path.exists(outputpath_noshadow):
+       os.makedirs(outputpath_contours_not_dilated)
+    if not os.path.exists(outputpath_contours_not_dilated):
+       os.makedirs(outputpath_contours_not_dilated)
+    if not os.path.exists(outputpath_simplify):
+       os.makedirs(outputpath_simplify)
+    if not os.path.exists(outputpath_noshadow):
+       os.makedirs(outputpath_noshadow)
+
     for filename in sorted(os.listdir(inputpath)):
         if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.tiff', '.bmp', '.gif')):# and filename=="00066.png":
             print("process("+inputpath+"/"+filename+", "+outputpath+")")
@@ -378,7 +416,7 @@ if __name__ == "__main__":
             imgray = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
             
             #find relevant contours
-            contours_raw, colors = getContours(im)
+            contours_not_dilated, contours_raw, colors = getContours(im)
 
             #align close contours
             #contours_raw = util_contours.fillGaps(contours_raw)
@@ -390,8 +428,10 @@ if __name__ == "__main__":
             imcolor = np.zeros_like(im)
             imcolor = addAlpha(imcolor)
             imcolor_result = fillContours(contours_simplified, colors, imcolor)
-
+            
             #add shadows
+            #write no shadow
+            #cv2.imwrite(os.path.join(outputpath_noshadow, filename), imcolor_result)
             imcolor_result = addShadow(imcolor_result, shadowSize)
 
             #draw face elements
@@ -403,8 +443,21 @@ if __name__ == "__main__":
             print("cv2.imwrite("+os.path.join(outputpath, filename)+")")
 
             '''
+            #contours not dilated
+            imcolor_contours = np.zeros_like(im)
+            imcolor_contours = addAlpha(imcolor_contours)
+            imcolor_contours_result = drawContours(contours_not_dilated, colors, imcolor_contours)    
+            cv2.imwrite(os.path.join(outputpath_contours_not_dilated, filename), imcolor_contours_result)
+           
+            #contours original
             imcolor_contours = np.zeros_like(im)
             imcolor_contours = addAlpha(imcolor_contours)
             imcolor_contours_result = drawContours(contours_raw, colors, imcolor_contours)    
             cv2.imwrite(os.path.join(outputpath_contours, filename), imcolor_contours_result)
+            
+            #contours simplified
+            imcolor_contours = np.zeros_like(im)
+            imcolor_contours = addAlpha(imcolor_contours)
+            imcolor_contours_result = drawContours(contours_simplified, colors, imcolor_contours)    
+            cv2.imwrite(os.path.join(outputpath_simplify, filename), imcolor_contours_result)
             '''

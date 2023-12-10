@@ -1,0 +1,1 @@
+ffmpeg -pattern_type glob -i 'data/scenes/green_woman1/imagesFull/*.png' -c:v libx264 -pix_fmt yuv420p data/scenes/green_woman1/footage.mp4
