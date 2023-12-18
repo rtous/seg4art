@@ -8,91 +8,37 @@ import traceback
 import facial_landmarks
 import sys
 
-#BGR!!!!
-#hair: 5,56,182
-#skin: 121,141,205 #darker = 106,125,171 #contours: 118, 113, 168
-	#NO right arm: 118, 135, 168
-#left leg:72,72,72 #right leg:2,2,2
-#shirt:49,32,46 #shoulder:44,34,42 
-#ball:89,69,4
-#pupils: 61, 71, 118
-'''
-ruben2
-color_assignment = { #color from original segmentation (grayscale) to final color
-    170: (121,141,205,255), #right arm
-    174: (34,34,34,255),#left leg
-    162: (89,69,4,255),#ball
-    179: (121,141,205,255),#face 
-    196: (22,22,22,255),#right leg
-    207: (49,32,46,255),#shirt
-    255: (5,56,182,255),#hair
-    239: (44,34,42,255)#right shoulder
-}
-'''
+DRAW_CONTOURS_SIMPLIFIED=False
+PRINT_COLOR_IDS=False
 
-color_assignment = { #color from original segmentation (grayscale) to final color
-    170: (121,141,205,255), #right arm
-    174: (34,34,34,255),#left leg
-    162: (89,69,4,255),#ball
-    179: (121,141,205,255),#face 
-    196: (22,22,22,255),#right leg
-    207: (49,32,46,255),#shirt
-    255: (5,56,182,255),#hair
-    239: (44,34,42,255),#right shoulder
-    199: (121,141,205,255),
-}
-#man_walk_1_part2
-#[\"skin,tshirt\",\"trousers,hair,shoes\"]
-'''color_assignmentNEW = {
-    0: (255,0,255,255), #background (purple)
-    1: (121,141,205,255), #skin
-    2: (0,0,255,255),#red
-    3: (89,69,4,255),
-    4: (0,0,0,255),
-    5: (0,0,0,0),
-    6: (0,0,0,0),
-    7: (0,0,0,0),
-    8: (0,0,0,0),
-    9: (0,0,0,0),
-    10: (0,0,0,0),
-    11: (89,69,4,255),#hair
-    12: (89,69,4,255),#shorts
-    13: (5,56,182,255),#pink
-    14: (255,0,0,255),#blue
-    15: (0,255,0,255),#green
-    16: (100,100,100,255),#gray
-    17: (89,69,4,255),#red
-    18: (89,69,4,255),
-    19: (0,0,0,0),
-    20: (0,255,255,255),
-    21: (34,34,34,255),
-    22: (34,34,34,255),#skirt
-    23: (89,69,4,255),
-    24: (49,32,46,255),#shirt
-    25: (89,69,4,255),#shoes
-    26: (89,69,4,255),
-}'''
+#WARNING: OpenCV colors are BGR!!!!
+
 color_assignmentNEW = {
     0: (255,0,255,255), #background (purple)
-    1: (0,255,0,255),
-    2: (121,141,205,255), #skin
-    3: (0,255,0,255),
-    4: (0,255,0,255),
-    5: (0,255,0,255),
-    6: (0,255,0,255),
-    7: (0,255,0,255),
-    8: (0,255,0,255),
-    9: (0,255,0,255),
-    10: (0,255,0,255),
-    11: (34,34,34,255),#trousers
-    12: (49,32,46,255), #tshirt
-    13: (255,0,0,255),
-    14: (5,56,182,255),#hair
-    15: (89,69,4,255),#ball
-    16: (255,0,0,255),
-    17: (255,0,0,255),
-    18: (255,0,0,255),
+    1: (121,141,205,255), #skin
+    2: (0, 255, 0), #ARTIFACTS
+    3: (49,32,46,255), #tshirt
+    4: (5,56,182,255), #hair
+    5: (255,0,0,255), #B
+    6: (0,255,0,255), #G
+    7: (0,0,255,255), #R
+    8: (255,0,0,255), #B
+    9: (0,255,0,255), #G
+    10: (0,255,0,0), #Y
+    11: (0,255,255,0), #T
+    12: (255,0,255,255), #?
+    13: (255,255,0,255), #Y
+    14: (0,0,0,0), #ARTIFACTS
+    15: (34,34,34,255), #trousers
+    16: (34,34,34,255), #trousers
+    17: (0,255,255,255), #T
+    18: (255,0,255,255), #?
     19: (255,0,0,255),
+    20: (255,255,0,255),
+    21: (5,56,182,255),#hair
+    22: (255,255,0,255),
+    23: (255,255,0,255),
+    24: (89,69,4,255)#ball
 }
 
 
@@ -192,8 +138,11 @@ def getContours(im):
         #mask[imgray == color] = 255
         #mask[imgray == color] = 255
         area = cv2.countNonZero(mask)
-        if area > 500 and area < height*width/2: #avoid the frame contour
+        if area > 200 and area < height*width/2: #avoid the frame contour
             
+            #cv2.imshow("title", mask)
+            #cv2.waitKey()
+
             #split color mask in N contours (with a minimum of area > 10)
             ret, thresh = cv2.threshold(mask, 127, 255, 0)
             image, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
@@ -280,6 +229,7 @@ def fillContours(contours, colors, imcolor):
         #display_color = np.insert(colors[i], 0, 255)
         #print("display_color=", display_color)
         cv2.fillPoly(imcolor, pts =[contour], color=display_color)
+
     imcolor_pixelated = pixelate(imcolor, 512, 512)
     #imcolor_pixelated = imcolor
     return imcolor_pixelated
@@ -334,12 +284,21 @@ def overlay(bottomImage, topImage):
     return result
 
 def drawContours(contours, colors, imcolor):
+
     for i, contour in enumerate(contours):
+        #color_id = idFromColor(palette, colors[i])
         color_id = idFromColor(palette, colors[i])
-        if color_id in color_assignment:
-            display_color = color_assignment[color_id]
+        if color_id in color_assignmentNEW:
+            display_color = color_assignmentNEW[color_id]
         else:
             display_color = random_255_colors_4_channels[i]
+        
+        if PRINT_COLOR_IDS:
+            # compute the center of the contour
+            M = cv2.moments(contour)
+            cX = int(M["m10"] / M["m00"])
+            cY = int(M["m01"] / M["m00"])
+            cv2.putText(imcolor, str(color_id), (cX - 20, cY - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,0,255), 2)
         cv2.drawContours(imcolor, [contour], contourIdx=0, color=display_color, thickness=1)        
     #imcolor_pixelated = pixelate(imcolor, 512, 512)
     return imcolor
@@ -454,10 +413,12 @@ if __name__ == "__main__":
             imcolor_contours = addAlpha(imcolor_contours)
             imcolor_contours_result = drawContours(contours_raw, colors, imcolor_contours)    
             cv2.imwrite(os.path.join(outputpath_contours, filename), imcolor_contours_result)
-            
-            #contours simplified
-            imcolor_contours = np.zeros_like(im)
-            imcolor_contours = addAlpha(imcolor_contours)
-            imcolor_contours_result = drawContours(contours_simplified, colors, imcolor_contours)    
-            cv2.imwrite(os.path.join(outputpath_simplify, filename), imcolor_contours_result)
             '''
+
+            #contours simplified
+            if DRAW_CONTOURS_SIMPLIFIED:
+                imcolor_contours = np.zeros_like(im)
+                imcolor_contours = addAlpha(imcolor_contours)
+                imcolor_contours_result = drawContours(contours_simplified, colors, imcolor_contours)    
+                cv2.imwrite(os.path.join(outputpath_simplify, filename), imcolor_contours_result)
+                
