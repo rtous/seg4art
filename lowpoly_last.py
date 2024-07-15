@@ -124,6 +124,7 @@ def getContours(im):
     totalContours = 0
     #unique = np.unique(imgray)
     unique_colours = np.unique(im.reshape(-1, im.shape[2]), axis=0)
+    #For each COLOR 
     for i, color in enumerate(unique_colours):
         objectId = idFromColor(palette, opencv_to_RGB(color))
         #print("objectId=", objectId)
