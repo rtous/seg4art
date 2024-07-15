@@ -1,0 +1,18 @@
+
+0) Obtain a short video and name it footage.mp4
+1) place it within a folder within seg4art/data/scenes:
+	seg4art/data/scenes/multi1
+		footage.mp4
+2) from the root of seg4art repo:
+
+./subsample.sh $HOME/dev/seg4art/data/scenes/multi1 1
+
+3) push the repo
+
+!python ruben.py {scene} [\"skin,ball\",\"shoes,hair,tshirt,trousers\"]
+
+
+source myVenv/bin/activate
+./lowpoly.sh $HOME/DockerVolume/seg4art/data/scenes/ruben2 1 5
+./pngfinal2video.sh $HOME/DockerVolume/seg4art/data/scenes/ruben2
+./gifify.sh $HOME/DockerVolume/seg4art/data/scenes/ruben2
