@@ -1,3 +1,20 @@
+SETUP
+
+python3 -m venv myenv
+source myenv/bin/activate
+
+pip install --upgrade pip
+
+#pip install opencv-python==3.4.13.47
+pip install opencv-python==3.4.17.61 (modern versions raise error getContours)
+#pip install opencv-python
+pip install shapely==2.0.1
+pip install matplotlib==3.7.3
+pip install dlib
+pip install imutils
+
+
+RUN
 
 0) Obtain a short video and name it footage.mp4
 1) place it within a folder within seg4art/data/scenes:
@@ -7,12 +24,19 @@
 
 ./subsample.sh $HOME/dev/seg4art/data/scenes/multi1 1
 
-3) push the repo
+4) Copiar l'escena a l'altre repo, a git clone github.com/rtous/Segment-and-Track-Anything.git
+	(only the imagesFull dir is necessary)
 
-!python ruben.py {scene} [\"skin,ball\",\"shoes,hair,tshirt,trousers\"]
+5) go into the COLAB notebook: https://colab.research.google.com/drive/1Z2ysLIWS0fcw_CSxbrGGxa60hSD_fYQe#scrollTo=-edfFr-6GuPH
 
+6) from the root of seg4art repo:
 
-source myVenv/bin/activate
-./lowpoly.sh $HOME/DockerVolume/seg4art/data/scenes/ruben2 1 5
-./pngfinal2video.sh $HOME/DockerVolume/seg4art/data/scenes/ruben2
-./gifify.sh $HOME/DockerVolume/seg4art/data/scenes/ruben2
+source myenv/bin/activate
+
+./lowpoly.sh $HOME/dev/seg4art/data/scenes/multi1 0 5
+
+NOTE: manually put the colors within lowpoly_last.py (the setup.txt is not automatically processed)
+
+./pngfinal2video.sh $HOME/dev/seg4art/data/scenes/multi1
+
+./gifify.sh $HOME/dev/seg4art/data/scenes/multi1
